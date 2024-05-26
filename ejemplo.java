@@ -12,6 +12,6 @@ public class EjemploPracticaAnalizador {
         }
         double pot = 7.34E+1.4;
         val = CteGrav * dato * pot;
-        System.out.println("Prom = " + (prom/PI) + "Result = " + (val * 0xAxB));
+        System.out.println("Prom = " + (prom / PI) + "Result = " + (val * 0xAxB));
     }
 }

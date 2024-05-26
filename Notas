@@ -1,0 +1,6 @@
+Errores:
+- en el caso del real 0.0 lo marca como octal o hexadecimal por que empieza con 0
+- no he probado pero si metes un real con exponente el tipo 1.E+15 marcaria bien y esta mal
+- hay que agregar que no se aceptan caracteres especiales en los identificadores ni los _ al inicio
+- no se porque marca mal el for
+- me pasaron el de la impresion pero esta mal y usa expresiones regulares, pero ya me aburri lo hago despues
