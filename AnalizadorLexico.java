@@ -109,7 +109,7 @@ public class AnalizadorLexico {
                 }
             }
             return 1; // Número entero
-        } else if (Character.isLetter(c) || c == '_') {
+        } else if (Character.isLetter(c) || c == '_' || c == "$") {
             return 3; // Identificador
         } else if (c == '+' || c == '-' || c == '*' || c == '/' || c == '%') {
             return 4; // Operador aritmético
@@ -153,11 +153,14 @@ public class AnalizadorLexico {
     }
 
     public static int estadoRealConExponente(char c, int numeroLinea, char[] caracteres, int i) {
+        //comprobar si sea 7.(nada) marque error
         if (Character.isDigit(c)) {
             return 9; // Sigue siendo un número real con exponente
         } else if (c == '+' || c == '-') {
             return 9; // Puede tener signo después de 'E' o 'e'
-        } else if (esDelimitador(c)) {
+        } else if (){
+            //comprobar si tiene un numero despues del + o -
+        }else if (esDelimitador(c)) {
             return 0; // Fin del número real con exponente
         } else {
             System.out.println("Error en línea " + numeroLinea + ": Número real con exponente mal formado");
@@ -167,7 +170,7 @@ public class AnalizadorLexico {
     }
 
     public static int estadoIdentificador(char c, int numeroLinea) {
-        if (Character.isLetterOrDigit(c) || c == '_') {
+        if (Character.isLetterOrDigit(c) || c == '_' || c == "$") {
             return 3; // Sigue siendo un identificador
         } else if (esDelimitador(c)) {
             return 0; // Fin del identificador
@@ -217,6 +220,7 @@ public class AnalizadorLexico {
     }
 
     public static int estadoOctal(char c, int numeroLinea, char[] caracteres, int i) {
+        //agregar si exite un 0.X lo mando a reales
         if (Character.isDigit(c) && c >= '0' && c <= '7') {
             return 8; // Sigue siendo un número octal
         } else if (esDelimitador(c)) {
