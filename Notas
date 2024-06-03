@@ -1,6 +1,6 @@
 Errores:
-- en el caso del real 0.0 lo marca como octal o hexadecimal por que empieza con 0 (checado)
-- real con exponente el tipo 1.E+15 esta mal y 7E+ esta mal (checar que los marque mal)
-- no se porque marca mal el for (checar en iteradores)
-- me pasaron el de la impresion pero esta mal y usa expresiones regulares, pero ya me aburri lo hago después (comprobar escritura de linea)
-- checar comentario por bloque/largo
+- en el caso del real 0.0 lo marca como octal o hexadecimal por que empieza con 0 (checado) LISTO
+- real con exponente el tipo 1.E+15 esta mal y 7E+ esta mal (checar que los marque mal) LISTO
+- no se porque marca mal el for (checar en iteradores) LISTO
+- me pasaron el de la impresion pero esta mal y usa expresiones regulares, pero ya me aburri lo hago después (comprobar escritura de linea) YA ESTA
+- checar comentario por bloque/largo ESTE NO SE SI QUEDO JAJAJA CHECALO PORFA
