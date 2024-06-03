@@ -4,8 +4,6 @@ import java.io.IOException;
 import java.util.HashSet;
 import java.util.Scanner;
 import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public class AnalizadorLexico {
 
@@ -65,7 +63,7 @@ public class AnalizadorLexico {
                     estado = estadoNumeroReal(c, numeroLinea, caracteres, i);
                     break;
                 case 3:
-                    estado = estadoIdentificador(c, numeroLinea);
+                    estado = estadoIdentificador(c, numeroLinea, caracteres, i, linea);
                     break;
                 case 4:
                     estado = estadoOperadorAritmetico(c, numeroLinea);
@@ -100,16 +98,18 @@ public class AnalizadorLexico {
     }
 
     public static int estadoInicial(char c, char[] caracteres, int i) {
-        if (Character.isDigit(c) || c == '+' || c == '-') {
+        if (Character.isDigit(c)) {
             if (c == '0') {
                 if (i + 1 < caracteres.length && (caracteres[i + 1] == 'x' || caracteres[i + 1] == 'X')) {
                     return 7; // Posible número hexadecimal
-                } else {
+                } else if (i + 1 < caracteres.length && caracteres[i + 1] == '.') {
+                    return 1; // Posible número real
+                } else if (i + 1 < caracteres.length && Character.isDigit(caracteres[i + 1]) && caracteres[i + 1] >= '0' && caracteres[i + 1] <= '7') {
                     return 8; // Posible número octal
                 }
             }
             return 1; // Número entero
-        } else if (Character.isLetter(c) || c == '_' || c == "$") {
+        } else if (Character.isLetter(c) || c == '_' || c == '$') {
             return 3; // Identificador
         } else if (c == '+' || c == '-' || c == '*' || c == '/' || c == '%') {
             return 4; // Operador aritmético
@@ -122,10 +122,29 @@ public class AnalizadorLexico {
         }
     }
 
+    public static int estadoIdentificador(char c, int numeroLinea, char[] caracteres, int i, String linea) {
+        if (Character.isLetterOrDigit(c) || c == '_' || c == '$' || c == '"') {
+            return 3; // Sigue siendo un identificador
+        } else if (linea.contains("System.out.println")) {
+            return 3; // Ignorar identificadores si la línea contiene "System.out.println"
+        } else if (esDelimitador(c)) {
+            return 0; // Fin del identificador
+        } else {
+            System.out.println("Error en línea " + numeroLinea + ": Identificador mal formado");
+            hayErrores = true;
+            return 0; // Error, regresar al estado inicial
+        }
+    }    
+
     public static int estadoNumeroEntero(char c, int numeroLinea, char[] caracteres, int i) {
         if (Character.isDigit(c)) {
             return 1; // Sigue siendo un número entero
         } else if (c == '.') {
+            if (i + 1 >= caracteres.length || !Character.isDigit(caracteres[i + 1])) {
+                System.out.println("Error en línea " + numeroLinea + ": Número real mal formado");
+                hayErrores = true;
+                return 0; // Error, regresar al estado inicial
+            }
             return 2; // Posible número real
         } else if (c == 'E' || c == 'e') {
             return 9; // Posible notación científica
@@ -153,29 +172,20 @@ public class AnalizadorLexico {
     }
 
     public static int estadoRealConExponente(char c, int numeroLinea, char[] caracteres, int i) {
-        //comprobar si sea 7.(nada) marque error
         if (Character.isDigit(c)) {
             return 9; // Sigue siendo un número real con exponente
         } else if (c == '+' || c == '-') {
-            return 9; // Puede tener signo después de 'E' o 'e'
-        } else if (){
-            //comprobar si tiene un numero despues del + o -
-        }else if (esDelimitador(c)) {
+            if (i + 1 < caracteres.length && Character.isDigit(caracteres[i + 1])) {
+                return 9; // Puede tener signo después de 'E' o 'e' y seguido de un dígito
+            } else {
+                System.out.println("Error en línea " + numeroLinea + ": Número real con exponente mal formado");
+                hayErrores = true;
+                return 0; // Error, regresar al estado inicial
+            }
+        } else if (esDelimitador(c)) {
             return 0; // Fin del número real con exponente
         } else {
             System.out.println("Error en línea " + numeroLinea + ": Número real con exponente mal formado");
-            hayErrores = true;
-            return 0; // Error, regresar al estado inicial
-        }
-    }
-
-    public static int estadoIdentificador(char c, int numeroLinea) {
-        if (Character.isLetterOrDigit(c) || c == '_' || c == "$") {
-            return 3; // Sigue siendo un identificador
-        } else if (esDelimitador(c)) {
-            return 0; // Fin del identificador
-        } else {
-            System.out.println("Error en línea " + numeroLinea + ": Identificador mal formado");
             hayErrores = true;
             return 0; // Error, regresar al estado inicial
         }
@@ -206,9 +216,7 @@ public class AnalizadorLexico {
     }
 
     public static int estadoHexadecimal(char c, int numeroLinea, char[] caracteres, int i) {
-        if (i == 1 && (c == 'x' || c == 'X')) {
-            return 7; // Confirmar hexadecimal
-        } else if (Character.isDigit(c) || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')) {
+        if (Character.isDigit(c) || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')) {
             return 7; // Sigue siendo un número hexadecimal
         } else if (esDelimitador(c)) {
             return 0; // Fin del número hexadecimal
@@ -220,8 +228,7 @@ public class AnalizadorLexico {
     }
 
     public static int estadoOctal(char c, int numeroLinea, char[] caracteres, int i) {
-        //agregar si exite un 0.X lo mando a reales
-        if (Character.isDigit(c) && c >= '0' && c <= '7') {
+        if (c >= '0' && c <= '7') {
             return 8; // Sigue siendo un número octal
         } else if (esDelimitador(c)) {
             return 0; // Fin del número octal
@@ -234,45 +241,97 @@ public class AnalizadorLexico {
 
     public static int estadoComentario(char c, int numeroLinea, char[] caracteres, int i) {
         if (c == '/') {
+            return 0; // Comentario de una sola línea, terminar análisis
+        } else if (c == '*') {
             if (i + 1 < caracteres.length && caracteres[i + 1] == '/') {
-                return caracteres.length; // Comentario de línea, ignorar hasta el final
-            } else if (i + 1 < caracteres.length && caracteres[i + 1] == '*') {
-                return 11; // Comentario de bloque
+                return 0; // Comentario de varias líneas, terminado
             } else {
-                return 4; // Operador aritmético '/'
+                return 10; // Comentario de varias líneas, continuar
             }
         } else {
-            return 0; // No es comentario, regresar al estado inicial
-        }
-    }
-
-    public static void verificarEstructuras(String linea, int numeroLinea) {
-        // Verificar iteradores y condiciones
-        String[] iteradores = {"for", "if", "while", "do"};
-        for (String iterador : iteradores) {
-            if (linea.matches(".*\\b" + iterador + "\\b.*")) {
-                Pattern pattern = Pattern.compile("\\b" + iterador + "\\b\\s*\\(.*\\).*\\{.*\\}");
-                Matcher matcher = pattern.matcher(linea);
-                if (!matcher.find()) {
-                    System.out.println("Error en línea " + numeroLinea + ": Estructura de " + iterador + " mal formada");
-                    hayErrores = true;
-                }
-                return; // Una vez verificada la estructura del iterador, no continuar verificando más
-            }
-        }
-
-        // Verificar System.out.println
-        if (linea.contains("System.out.println")) {
-            Pattern pattern = Pattern.compile("System\\.out\\.println\\s*\\(\\s*\".*\"\\s*(\\+\\s*\\(?.*\\)?\\s*)?\\)\\s*;");
-            Matcher matcher = pattern.matcher(linea);
-            if (!matcher.find()) {
-                System.out.println("Error en línea " + numeroLinea + ": Impresión mal formada");
-                hayErrores = true;
-            }
+            return 10; // Sigue siendo un comentario
         }
     }
 
     private static boolean esDelimitador(char c) {
-        return c == ' ' || c == ',' || c == ';' || c == '+' || c == '-' || c == '*' || c == '/' || c == '%' || c == '(' || c == ')' || c == '{' || c == '}' || c == '[' || c == ']';
+        return c == ' ' || c == ',' || c == ';' || c == '+' || c == '-' || c == '*' || c == '/' || c == '%' || 
+               c == '(' || c == ')' || c == '{' || c == '}' || c == '[' || c == ']' || c == '<' || c == '>' || 
+               c == '=' || c == '!' || c == '&' || c == '|' || c == '^' || c == '~';
     }
+
+    public static void verificarEstructuras(String linea, int numeroLinea) {
+        // Verificar estructuras de iteración
+        if (linea.contains("for (") || linea.contains("while (")) {
+            if (!linea.contains("{") && !linea.trim().endsWith(";")) {
+                System.out.println("Error en línea " + numeroLinea + ": Estructura de iteración mal formada");
+                hayErrores = true;
+            }
+        }
+    
+        // Verificar System.out.println
+        if (linea.contains("System.out.println")) {
+            int indexInicio = linea.indexOf("System.out.println") + "System.out.println".length();
+            if (indexInicio < linea.length() && (linea.charAt(indexInicio) != '(' || !linea.trim().endsWith(");"))) {
+                System.out.println("Error en línea " + numeroLinea + ": Estructura de impresión mal formada");
+                hayErrores = true;
+            } else {
+                // Analizar lo que está dentro de los paréntesis
+                int indexFin = linea.lastIndexOf(")");
+                if (indexInicio < indexFin) {
+                    String contenido = linea.substring(indexInicio + 1, indexFin);
+                    analizarContenidoImpresion(contenido, numeroLinea);
+                }
+            }
+        } 
+    }
+
+    public static void analizarContenidoImpresion(String contenido, int numeroLinea) {
+        char[] caracteres = contenido.toCharArray();
+        int estado = 0;
+    
+        for (int i = 0; i < caracteres.length; i++) {
+            char c = caracteres[i];
+    
+            switch (estado) {
+                case 0:
+                    estado = estadoInicial(c, caracteres, i);
+                    break;
+                case 1:
+                    estado = estadoNumeroEntero(c, numeroLinea, caracteres, i);
+                    break;
+                case 2:
+                    estado = estadoNumeroReal(c, numeroLinea, caracteres, i);
+                    break;
+                case 3:
+                    estado = estadoIdentificador(c, numeroLinea, caracteres, i, contenido);
+                    break;
+                case 4:
+                    estado = estadoOperadorAritmetico(c, numeroLinea);
+                    break;
+                case 5:
+                    estado = estadoOperadorComparacion(c, numeroLinea);
+                    break;
+                case 6:
+                    estado = estadoOperadorAsignacion(c, numeroLinea);
+                    break;
+                case 7:
+                    estado = estadoHexadecimal(c, numeroLinea, caracteres, i);
+                    break;
+                case 8:
+                    estado = estadoOctal(c, numeroLinea, caracteres, i);
+                    break;
+                case 9:
+                    estado = estadoRealConExponente(c, numeroLinea, caracteres, i);
+                    break;
+                case 10:
+                    estado = estadoComentario(c, numeroLinea, caracteres, i);
+                    i = estado == 0 ? i : caracteres.length; // Si se sale de comentario, continuar desde ahí
+                    break;
+                default:
+                    estado = 0;
+                    break;
+            }
+        }
+    }
+    
 }
