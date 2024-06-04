@@ -7,14 +7,15 @@ public class EjemploPracticaAnalizador {
         double val;
         double hola = 0.5;
         //hola
-        /* Calculos Generales */
+        /* Calculos Generales 
         for (int i = 1; i < 100; i++){
             prom += i;
         }
         double pot2 = .7.E+1;
         double pot1 = .7E+1;
+        double pot3 = 7E;
         double pot = 7.E+1;
-        val = CteGrav * dato * pot;
+        val = CteGrav * dato + pot;
         System.out.println("Prom = " + (prom / PI) + "Result = " + (val * 0xAxB));
         System.out.println("Hola Mundo");
     }
