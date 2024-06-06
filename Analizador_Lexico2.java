@@ -311,14 +311,12 @@ public class Analizador_Lexico2 {
                 comentarioBloque = false;
                 return 0; // Fin del comentario de bloque
             } else {
-                System.out.println("Error en línea " + numeroLinea + ": Comentario de bloque mal formado");
-                System.exit(1); // Termina el programa con un código de salida de error
+                return 11; // Ignorar otros caracteres dentro del comentario de bloque
             }
         } else {
            return 0;
         }
-        return 0; // Esta línea es redundante, pero la incluimos para evitar errores de compilación
-    }        
+    }    
 
     private static boolean esCierre(char c) {
         return c == ',' || c == ';' || c == '{' || c == '}';
@@ -372,7 +370,7 @@ public class Analizador_Lexico2 {
                     estado = estadoNumeroReal(c, numeroLinea, caracteres, i);
                     break;
                 case 3:
-                    estado = estadoIdentificador(c, numeroLinea, caracteres, i, contenido);
+                estado = estadoIdentificador(c, numeroLinea, caracteres, i, contenido);
                     break;
                 case 4:
                     estado = estadoOperadorAritmetico(c, numeroLinea, caracteres, i);
@@ -394,9 +392,9 @@ public class Analizador_Lexico2 {
                     break;
                 case 10:
                     estado = estadoComentario(c, numeroLinea, caracteres, i);
-                    i = estado == 10 ? i : caracteres.length; // Si se sale de comentario, continuar desde ahí
+                    if (estado == 11) { i = caracteres.length;}
                     break;
-                case 11: 
+                case 11: // Comentario de bloque
                     estado = estadoComentarioBloque(c, numeroLinea, caracteres, i);
                     break;
                 default:
