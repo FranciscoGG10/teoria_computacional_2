@@ -8,6 +8,7 @@ import java.util.Set;
 public class Analizador_Lexico2 {
 
     private static boolean hayErrores = false;
+    private static boolean comentarioBloque = false;
     private static final Set<String> palabrasReservadas;
 
     static {
@@ -17,7 +18,7 @@ public class Analizador_Lexico2 {
                 "finally", "float", "for", "goto", "if", "implements", "import", "instanceof", "int",
                 "interface", "long", "native", "new", "package", "private", "protected", "public",
                 "return", "short", "static", "strictfp", "super", "switch", "synchronized", "this",
-                "throw", "throws", "transient", "try", "void", "volatile", "while", "true", "false", "null"};
+                "throw", "throws", "transient", "try", "void", "volatile", "while", "true", "false", "null", "int"};
         for (String palabra : palabras) {
             palabrasReservadas.add(palabra);
         }
@@ -48,6 +49,10 @@ public class Analizador_Lexico2 {
     public static void analizarLinea(String linea, int numeroLinea) {
         int estado = 0;
         char[] caracteres = linea.toCharArray();
+
+        if(comentarioBloque == true){
+            estado = 11;
+        }
 
         for (int i = 0; i < caracteres.length; i++) {
             char c = caracteres[i];
@@ -85,9 +90,9 @@ public class Analizador_Lexico2 {
                     break;
                 case 10:
                     estado = estadoComentario(c, numeroLinea, caracteres, i);
-                    if (estado == 11) { i = caracteres.length;}
+                    i = estado == 10 ? i : caracteres.length; // Si se sale de comentario, continuar desde ahí
                     break;
-                case 11: // Comentario de bloque
+                case 11: 
                     estado = estadoComentarioBloque(c, numeroLinea, caracteres, i);
                     break;
                 default:
@@ -179,11 +184,13 @@ public class Analizador_Lexico2 {
     }
 
     public static int estadoIdentificador(char c, int numeroLinea, char[] caracteres, int i, String linea) {
-        if (Character.isLetterOrDigit(c) || c == '_' || c == '$' || c == '"') {
+        if (Character.isLetterOrDigit(c) || c == '_') {
             return 3; // Sigue siendo un identificador
         } else if (linea.contains("System.out.println")) {
             return 3; // Ignorar identificadores si la línea contiene "System.out.println"
-        } else if (esDelimitador(c)) {
+        } else if (i + 1 < caracteres.length && (caracteres[i+1] == '+' || caracteres[i+1] == '-')){
+            return 4;//identificador con operador aritmetico        
+        }else if (esDelimitador(c)) {
             return 0; // Fin del identificador
         } else {
             System.out.println("Error en línea " + numeroLinea + ": Identificador mal formado");
@@ -193,23 +200,26 @@ public class Analizador_Lexico2 {
     }    
 
     public static int estadoOperadorAritmetico(char c, int numeroLinea, char[] caracteres, int i) {
-        if (caracteres[i - 1] == '/' && (c == '/' || c == '*')) {
-            return 10; // Posible comentario
+        if (caracteres[i - 1] == '/' && (c == '/')) {
+            return 10; // Comentario de linea
+        } else if (caracteres[i - 1] == '/' && (c == '*')) {
+            comentarioBloque = true;
+            return 11; // Comentario de bloque
         } else if (c == ' ') {
-            if(i + 1 < caracteres.length && esCierre(caracteres[i + 1])){
+            if (i + 1 < caracteres.length && !(Character.isLetter(caracteres[i + 1]) || Character.isDigit(caracteres[i + 1]) || caracteres[i + 1] == '_' || caracteres[i + 1] == '(' || caracteres[i + 1] == '"')) {
                 System.out.println("Error en línea " + numeroLinea + ": Operador aritmético mal formado");
                 hayErrores = true;
                 return 0; //Operador aritmetico mal formado
             }
             return 0; // Operacion Aritmetica bien formada
-        } else if(esCierre(c)){
+        } else if (esDelimitador(c)) {
             System.out.println("Error en línea " + numeroLinea + ": Operador aritmético mal formado");
             hayErrores = true;
             return 0; //Operador aritmetico mal formado
         } else {
-                return 0;
+            return 0;
         }
-    }
+    } 
 
     public static int estadoOperadorComparacion(char c, int numeroLinea, char[] caracteres, int i) {
         if(c == '='){
@@ -221,14 +231,20 @@ public class Analizador_Lexico2 {
                 return 0; //Operador mal formado
             }
             else {
-                return 0; //Operador bien formado
+                return 5; //Operador bien formado
             }
+        } else if (c == ' ') {
+            if(i + 1 < caracteres.length && !(Character.isLetter(caracteres[i+1]) || Character.isDigit(caracteres[i+1]) || caracteres[i+1] == '_')){
+                System.out.println("Error en línea " + numeroLinea + ": Operador aritmético mal formado");
+                hayErrores = true;
+                return 0; //Operador aritmetico mal formado
+            }
+            return 0; // Operacion Aritmetica bien formada
         } else if (esDelimitador(c)){
             System.out.println("Error en línea " + numeroLinea + ": Operador de comparacion mal formado");
             hayErrores = true;
             return 0; //Operador mal formado
-        }
-        else {
+        } else {
             return 0; //Operador bien formado
         }
     }
@@ -237,14 +253,14 @@ public class Analizador_Lexico2 {
         if (c == '=') {
             return 5; // Operador de comparación
         } else if (c == ' ') {
-            if(i + 1 < caracteres.length && esDelimitador(caracteres[i + 1])){
+            if(i + 1 < caracteres.length && esCierre(caracteres[i + 1])){
                 System.out.println("Error en línea " + numeroLinea + ": Operador de asignacion mal formado");
                 hayErrores = true;
                 return 0; //Operador mal formado
             } else {
                 return 0; //Operador bien formado
             }
-        } else if (esDelimitador(c)){
+        } else if (esCierre(c)){
                 System.out.println("Error en línea " + numeroLinea + ": Operador de asignacion mal formado");
                 hayErrores = true;
                 return 0; //Operador mal formado
@@ -283,34 +299,32 @@ public class Analizador_Lexico2 {
 
     public static int estadoComentario(char c, int numeroLinea, char[] caracteres, int i) {
         if (caracteres[i - 1] == '/') {
-            return 0; // Comentario de línea
-        } else if (caracteres[i - 1] == '*') {
-                return 11; // Comentario de bloque
+            return 10; // comentario de bloque 
         } else {
-            System.out.println("Error en línea " + numeroLinea + ": Comentario mal formado");
-            hayErrores = true;
-            return 0; //Comentario mal formado
+            return 0;
         }
     }
 
     public static int estadoComentarioBloque(char c, int numeroLinea, char[] caracteres, int i) {
-        if (c == '*') {
-            return 11; // Sigue dentro del comentario de bloque
-        } else if (c == '/' && i > 0 && caracteres[i - 1] == '*') {
-            return 0; // Fin del comentario de bloque
+        if (comentarioBloque) {
+            if (c == '*' && caracteres[i + 1] == '/') {
+                comentarioBloque = false;
+                return 0; // Fin del comentario de bloque
+            } else {
+                return 11; // Ignorar otros caracteres dentro del comentario de bloque
+            }
         } else {
-            return 11; // Ignorar otros caracteres dentro del comentario de bloque
+           return 0;
         }
-    }
+    }    
 
     private static boolean esCierre(char c) {
-        return c == ',' || c == ';';
+        return c == ',' || c == ';' || c == '{' || c == '}';
     }
 
     private static boolean esDelimitador(char c) {
-        return c == ' ' || c == ',' || c == ';' || c == '(' || c == ')' || c == '{' || c == '}' || c == '[' || c == ']';
+        return c == ' ' || c == ',' || c == ';' || c == '(' || c == ')' || c == '{' || c == '}' || c == '[' || c == ']' || c == '"';
     }
-
 
     public static void verificarEstructuras(String linea, int numeroLinea) {
         // Verificar estructuras de iteración

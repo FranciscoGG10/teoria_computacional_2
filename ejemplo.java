@@ -1,4 +1,4 @@
-public class EjemploPracticaAnalizador {
+public class ejemplo {
     public static void main(String[] args) {
         int octal1 = -0123, octal2 = 0381;
         short dato = 12A12;
@@ -6,8 +6,8 @@ public class EjemploPracticaAnalizador {
         float prom = (float) 1.4;
         double val;
         double hola = 0.5;
-        //hola
-        /* Calculos Generales 
+        //hola 5.E
+        /* Calculos Generales */
         for (int i = 1; i < 100; i++){
             prom += i;
         }
