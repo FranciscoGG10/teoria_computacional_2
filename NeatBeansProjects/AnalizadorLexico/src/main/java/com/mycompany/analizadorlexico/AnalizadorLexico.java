@@ -4,12 +4,14 @@
 package com.mycompany.analizadorlexico;
 
 import javax.swing.*;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.HashSet;
-import java.util.Scanner;
 import java.util.Set;
 
 public class AnalizadorLexico {
@@ -33,16 +35,56 @@ public class AnalizadorLexico {
     }
 
     public static void main(String[] args) {
-    JFileChooser fileChooser = new JFileChooser();
-    fileChooser.setDialogTitle("Seleccione el archivo Java a analizar");
-    int userSelection = fileChooser.showOpenDialog(null);
+        // Crear la ventana principal
+        JFrame frame = new JFrame("Analizador Léxico");
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setSize(600, 400);
+        frame.setLayout(new BorderLayout());
 
-    if (userSelection == JFileChooser.APPROVE_OPTION) {
-        File archivo = fileChooser.getSelectedFile();
+        // Crear panel superior con botón y etiqueta
+        JPanel topPanel = new JPanel();
+        topPanel.setLayout(new FlowLayout());
+
+        JLabel label = new JLabel("Seleccione un archivo Java para analizar:");
+        JButton button = new JButton("Buscar archivo");
+
+        topPanel.add(label);
+        topPanel.add(button);
+        frame.add(topPanel, BorderLayout.NORTH);
+
+        // Crear área de texto para mostrar resultados
+        JTextArea textArea = new JTextArea();
+        textArea.setEditable(false);
+        JScrollPane scrollPane = new JScrollPane(textArea);
+        frame.add(scrollPane, BorderLayout.CENTER);
+
+        // Añadir funcionalidad al botón
+        button.addActionListener(e -> {
+            JFileChooser fileChooser = new JFileChooser();
+            fileChooser.setDialogTitle("Seleccione el archivo Java a analizar");
+            int userSelection = fileChooser.showOpenDialog(null);
+
+            if (userSelection == JFileChooser.APPROVE_OPTION) {
+                File archivo = fileChooser.getSelectedFile();
+                analizarArchivo(archivo, textArea);
+            } else {
+                textArea.setText("No se seleccionó ningún archivo.");
+            }
+        });
+
+        // Hacer visible la ventana
+        frame.setVisible(true);
+    }
+
+    private static void analizarArchivo(File archivo, JTextArea textArea) {
+        resultados.setLength(0);  // Limpiar resultados anteriores
+        hayErrores = false;
+        comentarioBloque = false;
 
         try (BufferedReader br = new BufferedReader(new FileReader(archivo))) {
             String linea;
             int numeroLinea = 1;
+            resultados.append("Analizando el archivo: ").append(archivo.getName()).append("\n");
 
             while ((linea = br.readLine()) != null) {
                 analizarLinea(linea, numeroLinea);
@@ -53,27 +95,30 @@ public class AnalizadorLexico {
                 resultados.append("No hay errores de análisis léxico en el archivo ").append(archivo.getName()).append("\n");
             }
 
-            ResultadosVentana.mostrarResultado(resultados.toString());
-        } catch (IOException e) {
-            e.printStackTrace();
+            if (comentarioBloque) {
+                resultados.append("Error en comentario de bloque sin cierre en el archivo ").append(archivo.getName()).append("\n");
+            }
+
+            // Muestra los resultados en el área de texto
+            textArea.setText(resultados.toString());
+        } catch (IOException ex) {
+            ex.printStackTrace();
+            textArea.setText("Ocurrió un error al leer el archivo: " + ex.getMessage());
         }
-    } else {
-        System.out.println("No se seleccionó ningún archivo.");
     }
-}
 
 
     public static void analizarLinea(String linea, int numeroLinea) {
         int estado = 0;
         char[] caracteres = linea.toCharArray();
-        
-        if(comentarioBloque == true){
+    
+        if (comentarioBloque) {
             estado = 11;
         }
-
+    
         for (int i = 0; i < caracteres.length; i++) {
             char c = caracteres[i];
-
+    
             switch (estado) {
                 case 0:
                     estado = estadoInicial(c, caracteres, i);
@@ -117,9 +162,11 @@ public class AnalizadorLexico {
                     break;
             }
         }
-
-        // Verificar estructuras de iteradores y impresiones
-        verificarEstructuras(linea, numeroLinea);
+    
+        // Verificar estructuras de iteradores y impresiones solo si no estamos en un comentario de bloque
+        if (!comentarioBloque) {
+            verificarEstructuras(linea, numeroLinea);
+        }
     }
 
     public static int estadoInicial(char c, char[] caracteres, int i) {
@@ -324,15 +371,14 @@ public class AnalizadorLexico {
     
     public static int estadoComentarioBloque(char c, int numeroLinea, char[] caracteres, int i) {
         if (comentarioBloque) {
-            if (c == '*' && caracteres[i + 1] == '/') {
+            if (c == '*' && i + 1 < caracteres.length && caracteres[i + 1] == '/') {
                 comentarioBloque = false;
                 return 0; // Fin del comentario de bloque
             } else {
-                resultados.append("Error en línea ").append(numeroLinea).append(": Comentario de bloque mal formado\n");
-                return 11; // Esta línea es redundante, pero la incluimos para evitar errores de compilación
+                return 11; // Sigue dentro del comentario de bloque
             }
         } else {
-           return 0;
+            return 0;
         }
     }        
     
@@ -353,8 +399,8 @@ public class AnalizadorLexico {
             }
         }
     
-        // Verificar System.out.println
-        if (linea.contains("System.out.println")) {
+        // Verificar System.out.println solo si no estamos en un comentario de bloque
+        if (!comentarioBloque && linea.contains("System.out.println")) {
             int indexInicio = linea.indexOf("System.out.println") + "System.out.println".length();
             if (indexInicio < linea.length() && (linea.charAt(indexInicio) != '(' || !linea.trim().endsWith(");"))) {
                 resultados.append("Error en línea ").append(numeroLinea).append(": Estructura de impresión mal formada\n");
@@ -367,7 +413,7 @@ public class AnalizadorLexico {
                     analizarContenidoImpresion(contenido, numeroLinea);
                 }
             }
-        } 
+        }
     }
 
     public static void analizarContenidoImpresion(String contenido, int numeroLinea) {

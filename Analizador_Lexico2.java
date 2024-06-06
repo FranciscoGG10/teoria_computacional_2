@@ -41,6 +41,10 @@ public class Analizador_Lexico2 {
             if (!hayErrores) {
                 System.out.println("No hay errores de análisis léxico en el archivo " + archivo);
             }
+
+            if (comentarioBloque) {
+                System.out.println("Error en comentario de bloque sin cierre");
+            }
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -49,14 +53,14 @@ public class Analizador_Lexico2 {
     public static void analizarLinea(String linea, int numeroLinea) {
         int estado = 0;
         char[] caracteres = linea.toCharArray();
-
-        if(comentarioBloque == true){
+    
+        if (comentarioBloque) {
             estado = 11;
         }
-
+    
         for (int i = 0; i < caracteres.length; i++) {
             char c = caracteres[i];
-
+    
             switch (estado) {
                 case 0:
                     estado = estadoInicial(c, caracteres, i);
@@ -100,10 +104,12 @@ public class Analizador_Lexico2 {
                     break;
             }
         }
-
-        // Verificar estructuras de iteradores y impresiones
-        verificarEstructuras(linea, numeroLinea);
-    }
+    
+        // Verificar estructuras de iteradores y impresiones solo si no estamos en un comentario de bloque
+        if (!comentarioBloque) {
+            verificarEstructuras(linea, numeroLinea);
+        }
+    }    
 
     public static int estadoInicial(char c, char[] caracteres, int i) {
         if (Character.isDigit(c)) {
@@ -307,14 +313,14 @@ public class Analizador_Lexico2 {
 
     public static int estadoComentarioBloque(char c, int numeroLinea, char[] caracteres, int i) {
         if (comentarioBloque) {
-            if (c == '*' && caracteres[i + 1] == '/') {
+            if (c == '*' && i + 1 < caracteres.length && caracteres[i + 1] == '/') {
                 comentarioBloque = false;
                 return 0; // Fin del comentario de bloque
             } else {
-                return 11; // Ignorar otros caracteres dentro del comentario de bloque
+                return 11; // Sigue dentro del comentario de bloque
             }
         } else {
-           return 0;
+            return 0;
         }
     }    
 
@@ -335,8 +341,8 @@ public class Analizador_Lexico2 {
             }
         }
     
-        // Verificar System.out.println
-        if (linea.contains("System.out.println")) {
+        // Verificar System.out.println solo si no estamos en un comentario de bloque
+        if (!comentarioBloque && linea.contains("System.out.println")) {
             int indexInicio = linea.indexOf("System.out.println") + "System.out.println".length();
             if (indexInicio < linea.length() && (linea.charAt(indexInicio) != '(' || !linea.trim().endsWith(");"))) {
                 System.out.println("Error en línea " + numeroLinea + ": Estructura de impresión mal formada");
@@ -349,8 +355,8 @@ public class Analizador_Lexico2 {
                     analizarContenidoImpresion(contenido, numeroLinea);
                 }
             }
-        } 
-    }
+        }
+    }    
 
     public static void analizarContenidoImpresion(String contenido, int numeroLinea) {
         char[] caracteres = contenido.toCharArray();
